@@ -16,7 +16,7 @@ version.uc:
 	echo "export const revision = '$(LUCI_VERSION)', branch = '$(LUCI_GITBRANCH)';" > $@
 
 clean:
-	rm -f contrib/lemon lib/*.o lib/plural_formula.c lib/plural_formula.h *.o core.so jsmin po2lmo version.uc
+	rm -f contrib/lemon lib/*.o lib/plural_formula.c lib/plural_formula.h *.o core.so jsmin po2lmo version.uc luci-ethinfo
 
 jsmin: jsmin.o
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -24,7 +24,10 @@ jsmin: jsmin.o
 po2lmo: po2lmo.o lib/lmo.o lib/plural_formula.o
 	$(CC) $(LDFLAGS) -o $@ $^
 
-compile: core.so version.uc
+luci-ethinfo: luci-ethinfo.o
+	$(CC) $(LDFLAGS) -o $@ $^
+
+compile: core.so version.uc luci-ethinfo
 
 install: compile
 	mkdir -p $(DESTDIR)/usr/lib/ucode/luci
@@ -32,3 +35,6 @@ install: compile
 
 	mkdir -p $(DESTDIR)/usr/share/ucode/luci
 	cp version.uc $(DESTDIR)/usr/share/ucode/luci/version.uc
+
+	mkdir -p $(DESTDIR)/usr/bin
+	cp luci-ethinfo $(DESTDIR)/usr/bin/luci-ethinfo
