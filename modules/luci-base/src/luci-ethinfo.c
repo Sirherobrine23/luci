@@ -9,26 +9,131 @@
 #include <linux/sockios.h>
 #include <stdint.h>
 
+struct link_mode_def {
+    int bit;
+    int speed;
+    const char *duplex;
+};
+
+// Based on standard ETHTOOL_LINK_MODE_*_BIT
+static const struct link_mode_def link_modes[] = {
+    {0, 10, "half"},
+    {1, 10, "full"},
+    {2, 100, "half"},
+    {3, 100, "full"},
+    {4, 1000, "half"},
+    {5, 1000, "full"},
+    {12, 10000, "full"},
+    {15, 2500, "full"},
+    {17, 1000, "full"},
+    {18, 10000, "full"},
+    {19, 10000, "full"},
+    {21, 20000, "full"},
+    {22, 20000, "full"},
+    {23, 40000, "full"},
+    {24, 40000, "full"},
+    {25, 40000, "full"},
+    {26, 40000, "full"},
+    {27, 56000, "full"},
+    {28, 56000, "full"},
+    {29, 56000, "full"},
+    {30, 56000, "full"},
+    {31, 25000, "full"},
+    {32, 25000, "full"},
+    {33, 25000, "full"},
+    {34, 50000, "full"},
+    {35, 50000, "full"},
+    {36, 100000, "full"},
+    {37, 100000, "full"},
+    {38, 100000, "full"},
+    {39, 100000, "full"},
+    {40, 50000, "full"},
+    {41, 1000, "full"},
+    {42, 10000, "full"},
+    {43, 10000, "full"},
+    {44, 10000, "full"},
+    {45, 10000, "full"},
+    {46, 10000, "full"},
+    {47, 2500, "full"},
+    {48, 5000, "full"},
+    {52, 50000, "full"},
+    {53, 50000, "full"},
+    {54, 50000, "full"},
+    {55, 50000, "full"},
+    {56, 50000, "full"},
+    {57, 100000, "full"},
+    {58, 100000, "full"},
+    {59, 100000, "full"},
+    {60, 100000, "full"},
+    {61, 100000, "full"},
+    {62, 200000, "full"},
+    {63, 200000, "full"},
+    {64, 200000, "full"},
+    {65, 200000, "full"},
+    {66, 200000, "full"},
+    {67, 100, "full"},
+    {68, 1000, "full"},
+    {69, 400000, "full"},
+    {70, 400000, "full"},
+    {71, 400000, "full"},
+    {72, 400000, "full"},
+    {73, 400000, "full"},
+    {75, 100000, "full"},
+    {76, 100000, "full"},
+    {77, 100000, "full"},
+    {78, 100000, "full"},
+    {79, 100000, "full"},
+    {80, 200000, "full"},
+    {81, 200000, "full"},
+    {82, 200000, "full"},
+    {83, 200000, "full"},
+    {84, 200000, "full"},
+    {85, 400000, "full"},
+    {86, 400000, "full"},
+    {87, 400000, "full"},
+    {88, 400000, "full"},
+    {89, 400000, "full"},
+    {90, 100, "half"},
+    {91, 100, "full"},
+    {92, 10, "full"},
+    {93, 800000, "full"},
+    {94, 800000, "full"},
+    {95, 800000, "full"},
+    {96, 800000, "full"},
+    {97, 800000, "full"},
+    {98, 800000, "full"},
+    {99, 10, "full"},
+    {100, 10, "half"},
+    {101, 10, "half"},
+    {102, 10, "full"},
+    {103, 200000, "full"},
+    {104, 200000, "full"},
+    {105, 200000, "full"},
+    {106, 200000, "full"},
+    {107, 200000, "full"},
+    {108, 200000, "full"},
+    {109, 400000, "full"},
+    {110, 400000, "full"},
+    {111, 400000, "full"},
+    {112, 400000, "full"},
+    {113, 400000, "full"},
+    {114, 400000, "full"},
+    {115, 800000, "full"},
+    {116, 800000, "full"},
+    {117, 800000, "full"},
+    {118, 800000, "full"},
+    {119, 800000, "full"},
+    {120, 800000, "full"},
+    {121, 1600000, "full"},
+    {122, 1600000, "full"},
+    {123, 1600000, "full"},
+    {124, 1600000, "full"}
+};
+#define NUM_LINK_MODES (sizeof(link_modes) / sizeof(link_modes[0]))
+
 void print_json_mode(int speed, const char *duplex, int is_first) {
     if (!is_first) printf(", ");
     printf("{\"speed\": %d, \"duplex\": \"%s\"}", speed, duplex);
-}
-
-void print_link_modes(uint32_t mask) {
-    int first = 1;
-    printf("[");
-    if (mask & (1 << ETHTOOL_LINK_MODE_10baseT_Half_BIT)) { print_json_mode(10, "half", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_10baseT_Full_BIT)) { print_json_mode(10, "full", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_100baseT_Half_BIT)) { print_json_mode(100, "half", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_100baseT_Full_BIT)) { print_json_mode(100, "full", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_1000baseT_Half_BIT)) { print_json_mode(1000, "half", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_1000baseT_Full_BIT)) { print_json_mode(1000, "full", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_10000baseT_Full_BIT)) { print_json_mode(10000, "full", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_2500baseX_Full_BIT)) { print_json_mode(2500, "full", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_1000baseKX_Full_BIT)) { print_json_mode(1000, "full", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_10000baseKX4_Full_BIT)) { print_json_mode(10000, "full", first); first = 0; }
-    if (mask & (1 << ETHTOOL_LINK_MODE_10000baseKR_Full_BIT)) { print_json_mode(10000, "full", first); first = 0; }
-    printf("]\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -66,17 +171,12 @@ int main(int argc, char *argv[]) {
         if (ioctl(fd, SIOCETHTOOL, &ifr) == 0) {
             int first = 1;
             printf("[");
-            if (ecmd_old.supported & SUPPORTED_10baseT_Half) { print_json_mode(10, "half", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_10baseT_Full) { print_json_mode(10, "full", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_100baseT_Half) { print_json_mode(100, "half", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_100baseT_Full) { print_json_mode(100, "full", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_1000baseT_Half) { print_json_mode(1000, "half", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_1000baseT_Full) { print_json_mode(1000, "full", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_10000baseT_Full) { print_json_mode(10000, "full", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_2500baseX_Full) { print_json_mode(2500, "full", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_1000baseKX_Full) { print_json_mode(1000, "full", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_10000baseKX4_Full) { print_json_mode(10000, "full", first); first = 0; }
-            if (ecmd_old.supported & SUPPORTED_10000baseKR_Full) { print_json_mode(10000, "full", first); first = 0; }
+            for (size_t i = 0; i < NUM_LINK_MODES; i++) {
+                if (link_modes[i].bit < 32 && (ecmd_old.supported & (1U << link_modes[i].bit))) {
+                    print_json_mode(link_modes[i].speed, link_modes[i].duplex, first);
+                    first = 0;
+                }
+            }
             printf("]\n");
         } else {
             printf("[]\n");
@@ -86,8 +186,21 @@ int main(int argc, char *argv[]) {
             ecmd.req.link_mode_masks_nwords = -ecmd.req.link_mode_masks_nwords;
             if (ioctl(fd, SIOCETHTOOL, &ifr) == 0) {
                 // link_mode_data contains 3 bitmasks: supported, advertising, lp_advertising
-                // The supported mask is at offset 0.
-                print_link_modes(ecmd.link_mode_data[0]);
+                // The supported mask is at offset 0, which spans multiple 32-bit words
+                int first = 1;
+                printf("[");
+                for (size_t i = 0; i < NUM_LINK_MODES; i++) {
+                    int bit = link_modes[i].bit;
+                    int word_index = bit / 32;
+                    int bit_index = bit % 32;
+
+                    if (word_index < ecmd.req.link_mode_masks_nwords &&
+                        (ecmd.link_mode_data[word_index] & (1U << bit_index))) {
+                        print_json_mode(link_modes[i].speed, link_modes[i].duplex, first);
+                        first = 0;
+                    }
+                }
+                printf("]\n");
             } else {
                 printf("[]\n");
             }
