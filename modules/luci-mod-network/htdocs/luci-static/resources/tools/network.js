@@ -1129,6 +1129,50 @@ return baseclass.extend({
 		o.placeholder = dev ? dev._devstate('qlen') : '';
 		o.datatype = 'uinteger';
 
+		o = this.replaceOption(s, 'devadvanced', form.Value, 'rxpause', _('controls the receive (RX) flow control'));
+		o.rmempty = true;
+		o.value('',_('Default'));
+		o.value('1', _('Enable'));
+		o.value('0', _('Disable'));
+		o.default = '';
+
+                o = this.replaceOption(s, 'devadvanced', form.Value, 'txpause', _('controls the transmission flow control (TX)'));
+                o.rmempty = true;
+                o.value('',_('Default'));
+                o.value('1', _('Enable'));
+                o.value('0', _('Disable'));
+                o.default = '';
+
+		if (dev.getType() == 'ethernet') {
+			o = this.replaceOption(s, 'devgeneral', form.ListValue, 'autoneg', _('Auto negotiation'), _('Set diasable to control the duplex and link speed of the network interface'));
+	    		o.value('',_('automatic (enabled)'));
+			o.value('1', _('Enable'));
+    			o.value('0', _('Disable'));
+	    		o.default = '';
+    			o.rmempty = true;
+
+    			o = this.replaceOption(s, 'devgeneral', form.ListValue, 'duplex', _('Duplex'));
+	    		o.value('',_('automatic (Full duplex)'));
+    			o.value('1', _('Full duplex'));
+    			o.value('0', _('Half duplex'));
+	    		o.default = '';
+    			o.rmempty = true;
+			o.depends('autoneg', '0');
+
+			o = this.replaceOption(s, 'devgeneral', form.Value, 'speed', _('Speed'), _('Use a speed compatible with your device, forcing a higher speed will result in the system setting a lower value, but one that is compatible with the network interface'));
+			o.default = dev.getSpeed() ||  '1000';
+			o.rmempty = true;
+			o.depends('autoneg', '0');
+			o.value('', _('automatic'));
+			o.value('10', _('10Mbps'));
+			o.value('100', _('100Mbps'));
+			o.value('1000', _('1Gbps'));
+			o.value('2500', _('2.5Gbps'));
+			o.value('5000', _('5Gbps'));
+			o.value('10000', _('10Gbps'));
+			o.value('25000', _('25Gbps'));
+		}
+
 		/* PSE / PoE options */
 		if (hasPSE) {
 			o = this.replaceOption(s, 'devpse', form.ListValue, 'pse', _('PoE (C33)'),
