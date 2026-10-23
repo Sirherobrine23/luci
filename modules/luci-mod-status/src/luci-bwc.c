@@ -50,6 +50,8 @@
 #define DB_RD_FILE	DB_PATH "/radio/%s"
 #define DB_CN_FILE	DB_PATH "/connections"
 #define DB_LD_FILE	DB_PATH "/load"
+#define DB_CPU_FILE	DB_PATH "/cpufreq/%s"
+#define CPUFREQ_PATH		"/sys/devices/system/cpu/cpufreq"
 
 #define LD_SCAN_PATTERN \
 	"%f %f %f"
@@ -88,6 +90,11 @@ struct radio_entry {
 	uint16_t rate;
 	uint8_t  rssi;
 	uint8_t  noise;
+};
+
+struct cpufreq_entry {
+	uint32_t time;
+	uint32_t frequency;
 };
 
 static int readpid(void)
@@ -424,6 +431,67 @@ static int update_ldstat(uint16_t load1, uint16_t load5, uint16_t load15)
 	return update_file(path, &e, sizeof(struct load_entry));
 }
 
+static int valid_policy(const char *policy)
+{
+	return !strncmp(policy, "policy", 6) && policy[6] &&
+		strspn(policy + 6, "0123456789") == strlen(policy + 6);
+}
+
+static void update_cpufreq(void)
+{
+	DIR *dir = opendir(CPUFREQ_PATH);
+	struct dirent *policy;
+	struct cpufreq_entry entry;
+	struct stat s;
+	FILE *info;
+	char path[512];
+	uint32_t frequency;
+	int i;
+	const char *attributes[] = { "scaling_cur_freq", "cpuinfo_cur_freq" };
+
+	if (!dir)
+		return;
+
+	while ((policy = readdir(dir)) != NULL)
+	{
+		if (!valid_policy(policy->d_name))
+			continue;
+
+		frequency = 0;
+
+		for (i = 0; i < sizeof(attributes) / sizeof(attributes[0]); i++)
+		{
+			snprintf(path, sizeof(path), CPUFREQ_PATH "/%s/%s",
+				policy->d_name, attributes[i]);
+
+			if ((info = fopen(path, "r")) != NULL)
+			{
+				if (fscanf(info, "%" SCNu32, &frequency) != 1)
+					frequency = 0;
+
+				fclose(info);
+			}
+
+			if (frequency)
+				break;
+		}
+
+		if (!frequency)
+			continue;
+
+		snprintf(path, sizeof(path), DB_CPU_FILE, policy->d_name);
+
+		if (stat(path, &s) && init_file(path, sizeof(entry)))
+			continue;
+
+		entry.time = htobe32(time(NULL));
+		entry.frequency = htobe32(frequency);
+		update_file(path, &entry, sizeof(entry));
+	}
+
+	closedir(dir);
+}
+
 static int run_daemon(void)
 {
 	DIR *dir;
@@ -587,6 +655,8 @@ static int run_daemon(void)
 
 			fclose(info);
 		}
+
+		update_cpufreq();
 
 		sleep(STEP_TIME);
 	}
@@ -761,6 +831,42 @@ static int run_dump_load(void)
 }
 
 
+static int run_dump_cpufreq(const char *policy)
+{
+	int i;
+	char path[512];
+	struct file_map m;
+	struct cpufreq_entry *e;
+
+	if (!valid_policy(policy))
+		return 1;
+
+	check_daemon();
+	snprintf(path, sizeof(path), DB_CPU_FILE, policy);
+
+	if (mmap_file(path, sizeof(*e), &m))
+	{
+		umap_file(&m);
+		return 1;
+	}
+
+	for (i = 0; i < m.size; i += sizeof(*e))
+	{
+		e = (struct cpufreq_entry *) &m.mmap[i];
+
+		if (!e->time)
+			continue;
+
+		printf("[ %" PRIu32 ", %" PRIu32 " ]%s\n",
+			be32toh(e->time), be32toh(e->frequency),
+			((i + sizeof(*e)) < m.size) ? "," : "");
+	}
+
+	umap_file(&m);
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int opt;
@@ -771,7 +877,7 @@ int main(int argc, char *argv[])
 	for (opt = 0; opt < argc; opt++)
 		prognamelen += 1 + strlen(argv[opt]);
 
-	while ((opt = getopt(argc, argv, "t:i:r:cl")) > -1)
+	while ((opt = getopt(argc, argv, "t:i:r:f:cl")) > -1)
 	{
 		switch (opt)
 		{
@@ -795,6 +901,9 @@ int main(int argc, char *argv[])
 			case 'l':
 				return run_dump_load();
 
+			case 'f':
+				return run_dump_cpufreq(optarg);
+
 			default:
 				break;
 		}
@@ -805,8 +914,9 @@ int main(int argc, char *argv[])
 		"	%s [-t timeout] -i ifname\n"
 		"	%s [-t timeout] -r radiodev\n"
 		"	%s [-t timeout] -c\n"
-		"	%s [-t timeout] -l\n",
-			argv[0], argv[0], argv[0], argv[0]
+		"	%s [-t timeout] -l\n"
+		"	%s [-t timeout] -f cpufreq-policy\n",
+			argv[0], argv[0], argv[0], argv[0], argv[0]
 	);
 
 	return 1;

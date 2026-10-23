@@ -667,6 +667,8 @@ const methods = {
 				flags = '-c';
 			else if (request.args.mode == 'load')
 				flags = '-l';
+			else if (request.args.mode == 'cpufreq')
+				flags = `-f ${shellquote(request.args.device)}`;
 			else
 				return { error: 'Invalid mode' };
 

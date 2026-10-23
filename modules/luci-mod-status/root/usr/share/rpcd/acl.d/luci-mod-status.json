@@ -13,6 +13,19 @@
 		}
 	},
 
+	"luci-mod-status-realtime-cpufreq": {
+		"description": "Grant access to CPU frequency statistics",
+		"read": {
+			"file": {
+				"/sys/devices/system/cpu/cpufreq": [ "list" ]
+			},
+			"ubus": {
+				"file": [ "list" ],
+				"luci": [ "getRealtimeStats" ]
+			}
+		}
+	},
+
 	"luci-mod-status-processes": {
 		"description": "Grant access to process status",
 		"read": {

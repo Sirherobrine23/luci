@@ -177,6 +177,19 @@
 		}
 	},
 
+	"admin/status/realtime/cpufreq": {
+		"title": "CPU Frequency",
+		"order": 5,
+		"action": {
+			"type": "view",
+			"path": "status/cpufreq"
+		},
+		"depends": {
+			"acl": [ "luci-mod-status-realtime-cpufreq" ],
+			"fs": { "/sys/devices/system/cpu/cpufreq": "directory" }
+		}
+	},
+
 	"admin/status/realtime/connections": {
 		"title": "Connections",
 		"order": 4,
